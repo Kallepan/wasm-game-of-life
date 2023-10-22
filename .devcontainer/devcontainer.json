@@ -6,7 +6,7 @@
 	"image": "mcr.microsoft.com/devcontainers/base:jammy",
 	"features": {
 		"ghcr.io/devcontainers/features/node:1": {
-			"version": "lts",
+			"version": "16",
 			"nvmVersion": "latest"
 		},
 		"ghcr.io/devcontainers/features/rust:1": {
