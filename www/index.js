@@ -26,14 +26,15 @@ const bitIsSet = (n, arr) => {
 }
 
 let animationId = null;
-let animationsPerFrame = 1;
+let animationTicks = 10;
 const renderLoop = () => {
+  fps.render(); // Render the fps
+
   // debugger;
 
   // Tick the universe
-  for (let i = 0; i < animationsPerFrame; i++) {
+  for (let i = 0; i < animationTicks; i++)
     universe.tick();
-  }
 
   drawGrid(); // Draw the grid
   drawCells(); // Draw the cells
@@ -73,14 +74,34 @@ const drawCells = () => {
 
   ctx.beginPath();
 
+  // Alive cells
+  ctx.fillStyle = ALIVE_COLOR;
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
-      const idx = getIndex(row, col);
 
-      // This is updated!
-      ctx.fillStyle = bitIsSet(idx, cells)
-        ? ALIVE_COLOR
-        : DEAD_COLOR;
+      const idx = getIndex(row, col);
+      if (!bitIsSet(idx, cells)) {
+        continue;
+      }
+
+      ctx.fillRect(
+        col * (CELL_SIZE + 1) + 1,
+        row * (CELL_SIZE + 1) + 1,
+        CELL_SIZE,
+        CELL_SIZE
+      );
+    }
+  }
+
+  // Dead cells
+  ctx.fillStyle = DEAD_COLOR;
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+
+      const idx = getIndex(row, col);
+      if (bitIsSet(idx, cells)) {
+        continue;
+      }
 
       ctx.fillRect(
         col * (CELL_SIZE + 1) + 1,
@@ -138,7 +159,7 @@ clearButton.addEventListener("click", event => {
 });
 
 /// Toggle a cell
-canvas.addEventListener("click", event => {	
+canvas.addEventListener("click", event => {
   const boundingRect = canvas.getBoundingClientRect();
 
   const scaleX = canvas.width / boundingRect.width;
@@ -156,13 +177,50 @@ canvas.addEventListener("click", event => {
   drawCells();
 });
 
-/// Animation speed
-const animationsPerFrameSlider = document.getElementById("animation-per-frame-slider");
+/// Time step
+const fps = new class {
+  constructor() {
+    this.fps = document.getElementById("fps");
+    this.frames = [];
+    this.lastFrameTimeStamp = performance.now();
+  }
 
-animationsPerFrameSlider.addEventListener("change", event => {
-  animationsPerFrame = animationsPerFrameSlider.value;
-  console.log(animationsPerFrame);
-});
+  render() {
+    // Convert the delta time since the last frame render into a measure
+    // of frames per second.
+    const now = performance.now();
+    const delta = now - this.lastFrameTimeStamp;
+    this.lastFrameTimeStamp = now;
+    const fps = 1 / delta * 1000;
+
+    // Save only the latest 100 timings.
+    this.frames.push(fps);
+    if (this.frames.length > 100) {
+      this.frames.shift();
+    }
+
+    // Find the max, min, and mean of our 100 latest timings.
+    let min = Infinity;
+    let max = -Infinity;
+    let sum = 0;
+    for (let i = 0; i < this.frames.length; i++) {
+      sum += this.frames[i];
+      min = Math.min(this.frames[i], min);
+      max = Math.max(this.frames[i], max);
+    }
+    let mean = sum / this.frames.length;
+
+    // Render the statistics.
+    this.fps.textContent = `
+        Frames per Second:
+                latest = ${Math.round(fps)}
+        avg of last 100 = ${Math.round(mean)}
+        min of last 100 = ${Math.round(min)}
+        max of last 100 = ${Math.round(max)}
+    `.trim();
+
+  }
+}
 
 /// Start the game
 play();
