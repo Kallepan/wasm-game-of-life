@@ -5,42 +5,45 @@ use js_sys;
 use fixedbitset::FixedBitSet;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen] // Expose to JavaScript
+#[wasm_bindgen]
+pub struct Change {
+    row: u32,
+    col: u32,
+    state: bool,
+}
+
+#[wasm_bindgen]
+impl Change {
+    pub fn row(&self) -> u32 {
+        self.row
+    }
+
+    pub fn col(&self) -> u32 {
+        self.col
+    }
+
+    pub fn state(&self) -> bool {
+        self.state
+    }
+}
+
+#[wasm_bindgen]
 pub struct Universe {
     width: u32,
     height: u32,
     cells: FixedBitSet,
     old_cells: FixedBitSet,
+    changes: Vec<Change>,
 }
 
-#[wasm_bindgen] // Expose to JavaScript
+#[wasm_bindgen]
 impl Universe {
     pub fn width(&self) -> u32 {
         self.width
     }
 
-    /// Set the width of the universe.
-    ///
-    /// Resets all cells to the dead state. 
-    pub fn set_width(&mut self, width: u32) {
-        self.width = width;
-        self.cells = FixedBitSet::with_capacity((self.width * self.height) as usize);
-    }
-
     pub fn height(&self) -> u32 {
         self.height 
-    }
-
-    /// Set the height of the universe.
-    ///     
-    /// Resets all cells to the dead state.
-    pub fn set_height(&mut self, height: u32) {
-        self.height = height;
-        self.cells = FixedBitSet::with_capacity((self.width * self.height) as usize);
-    }
-
-    pub fn cells(&self) -> *const u32 {
-        self.cells.as_slice().as_ptr()
     }
 
     fn get_index(&self, row: u32, col: u32) -> usize {
@@ -135,24 +138,44 @@ impl Universe {
                         // All other cells remain in the same state.
                         (otherwise, _) => otherwise,
                     });
+
+                    // populate changes
+                    if self.cells[idx] != self.old_cells[idx] {
+                        self.changes.push(Change {
+                            row,
+                            col,
+                            state: self.cells[idx],
+                        });
+                    }
                 }
             }
         }
     }
 
-    pub fn new() -> Universe {
+    pub fn get_changes_ptr(&self) -> *const u32 {
+        // Convert the vector to a JavaScript array
+        self.changes.as_ptr() as *const u32
+    }
+
+    pub fn new(width: u32, height: u32) -> Universe {
         utils::set_panic_hook();
 
-        let width = 128;
-        let height = 128;
+        let width = width;
+        let height = height;
 
         // Initialize with all dead cells
         let size = (width * height) as usize;
         let mut cells = FixedBitSet::with_capacity(size);
+        let mut changes = Vec::new();
 
         // Randomly initialize the cells
         for i in 0..size {
             cells.set(i, js_sys::Math::random() < 0.5);
+            changes.push(Change {
+                row: i as u32 / width,
+                col: i as u32 % width,
+                state: cells[i],
+            });
         }
         let old_cells = cells.clone();
         
@@ -162,6 +185,7 @@ impl Universe {
             height,
             cells,
             old_cells,
+            changes,
         }
     }
 
@@ -169,34 +193,73 @@ impl Universe {
         self.to_string()
     }
 
-    /// Responsive functions    
+    pub fn get_changes_len(&self) -> usize {
+        self.changes.len()
+    }
+
+    pub fn free_changes(&mut self) {
+        self.changes.clear();
+    }
+
+    /// Responsive functions
+    ///    
     pub fn toggle_cell(&mut self, row: u32, col: u32) {
         let idx = self.get_index(row, col);
         self.cells.toggle(idx);
+        self.changes.push(Change {
+            row,
+            col,
+            state: self.cells[idx],
+        });
     }
 
     pub fn randomize(&mut self) {
         for i in 0..self.cells.len() {
             self.cells.set(i, js_sys::Math::random() < 0.5);
+            self.changes.push(Change {
+                row: i as u32 / self.width,
+                col: i as u32 % self.width,
+                state: self.cells[i],
+            });
         }
     }
 
     pub fn clear(&mut self) {
         self.cells = FixedBitSet::with_capacity((self.width * self.height) as usize);
+        for i in 0..self.cells.len() {
+            self.changes.push(Change {
+                row: i as u32 / self.width,
+                col: i as u32 % self.width,
+                state: self.cells[i],
+            });
+        }
     }
 }
 
-// Do not expose to JavaScript
+// Not exposed to JavaScript
 impl Universe {
     /// Get the dead and alive cells as a pointer to the cells memory.
     pub fn get_cells(&self) -> &[u32] {
         // Convert to a slice
         &self.cells.as_slice()
     }
-
     
+    // Changes
+    pub fn get_changes(&self) -> &[Change] {
+        &self.changes.as_slice()
+    }
+
+    pub fn add_changes(&mut self, changes: &[(u32, u32, bool)]) {
+        for (row, col, state) in changes.iter().cloned() {
+            self.changes.push(Change {
+                row,
+                col,
+                state,
+            });
+        }
+    }
+
     /// Set cells to be alive in a universe by passing the row and column as an array.
-    /// Do not expose to JavaScript.
     pub fn set_cells(&mut self, cells: &[(u32, u32)]) {
         // Set each cell to be alive
         for (row, col) in cells.iter().cloned() {
