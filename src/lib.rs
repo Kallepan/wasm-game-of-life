@@ -26,12 +26,24 @@ impl Universe {
         self.width
     }
 
+    /// Set the width of the universe.
+    ///
+    /// Resets all cells to the dead state. 
+    pub fn set_width(&mut self, width: u32) {
+        self.width = width;
+        self.cells = FixedBitSet::with_capacity((self.width * self.height) as usize);
+    }
+
     pub fn height(&self) -> u32 {
         self.height 
     }
 
-    pub fn cells(&self) -> *const u32 {
-        self.cells.as_slice().as_ptr()
+    /// Set the height of the universe.
+    ///     
+    /// Resets all cells to the dead state.
+    pub fn set_height(&mut self, height: u32) {
+        self.height = height;
+        self.cells = FixedBitSet::with_capacity((self.width * self.height) as usize);
     }
 
     fn get_index(&self, row: u32, col: u32) -> usize {
@@ -117,6 +129,26 @@ impl Universe {
 
     pub fn render(&self) -> String {
         self.to_string()
+    }
+}
+
+// Do not expose to JavaScript
+impl Universe {
+    /// Get the dead and alive cells as a pointer to the cells memory.
+    pub fn get_cells(&self) -> &[u32] {
+        // Convert to a slice
+        &self.cells.as_slice()
+    }
+
+    
+    /// Set cells to be alive in a universe by passing the row and column as an array.
+    /// Do not expose to JavaScript.
+    pub fn set_cells(&mut self, cells: &[(u32, u32)]) {
+        // Set each cell to be alive
+        for (row, col) in cells.iter().cloned() {
+            let idx = self.get_index(row, col);
+            self.cells.set(idx, true); 
+        }
     }
 }
 
