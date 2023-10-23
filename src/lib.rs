@@ -5,6 +5,13 @@ use js_sys;
 use fixedbitset::FixedBitSet;
 use wasm_bindgen::prelude::*;
 
+extern crate web_sys;
+macro_rules! log {
+    ( $( $t:tt )* ) => {
+        web_sys::console::log_1(&format!( $( $t )* ).into());
+    }
+}
+
 #[wasm_bindgen]
 #[repr(u8)] // Represented as a byte
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -112,6 +119,8 @@ impl Universe {
         self.cells = next; }
 
     pub fn new() -> Universe {
+        utils::set_panic_hook();
+
         let width = 128;
         let height = 128;
 
@@ -124,6 +133,7 @@ impl Universe {
             cells.set(i, js_sys::Math::random() < 0.5);
         }
 
+        log!("Created a universe with {} cells of {} width and {} height.", cells.len(), width, height);
         Universe {
             width,
             height,
