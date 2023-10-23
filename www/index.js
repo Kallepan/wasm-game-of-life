@@ -25,14 +25,15 @@ const bitIsSet = (n, arr) => {
   return (arr[byte] & mask) === mask;
 }
 
+let animationId = null;
 const renderLoop = () => {
-  debugger;
+  // debugger;
   universe.tick(); // Tick the universe
 
   drawGrid(); // Draw the grid
   drawCells(); // Draw the cells
 
-  requestAnimationFrame(renderLoop); // Request the next animation frame
+  animationId = requestAnimationFrame(renderLoop); // Request the next animation frame
 }
 
 const drawGrid = () => {
@@ -88,6 +89,30 @@ const drawCells = () => {
   ctx.stroke();
 };
 
-drawGrid();
-drawCells();
-requestAnimationFrame(renderLoop);
+/// Play and Pause
+const isPaused = () => {
+  return animationId === null;
+};
+
+const playPauseButton = document.getElementById("play-pause");
+
+const play = () => {
+  playPauseButton.textContent = "⏸";
+  renderLoop();
+};
+
+const pause = () => {
+  playPauseButton.textContent = "▶";
+  cancelAnimationFrame(animationId);
+  animationId = null;
+};
+
+playPauseButton.addEventListener("click", event => {
+  if (isPaused()) {
+    play();
+  } else {
+    pause();
+  }
+});
+
+play();
