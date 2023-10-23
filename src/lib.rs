@@ -152,16 +152,16 @@ impl Universe {
         }
     }
 
-    pub fn get_changes(&self) -> *const u32 {
+    pub fn get_changes_ptr(&self) -> *const u32 {
         // Convert the vector to a JavaScript array
         self.changes.as_ptr() as *const u32
     }
 
-    pub fn new() -> Universe {
+    pub fn new(width: u32, height: u32) -> Universe {
         utils::set_panic_hook();
 
-        let width = 128;
-        let height = 128;
+        let width = width;
+        let height = height;
 
         // Initialize with all dead cells
         let size = (width * height) as usize;
@@ -244,6 +244,21 @@ impl Universe {
         &self.cells.as_slice()
     }
     
+    // Changes
+    pub fn get_changes(&self) -> &[Change] {
+        &self.changes.as_slice()
+    }
+
+    pub fn add_changes(&mut self, changes: &[(u32, u32, bool)]) {
+        for (row, col, state) in changes.iter().cloned() {
+            self.changes.push(Change {
+                row,
+                col,
+                state,
+            });
+        }
+    }
+
     /// Set cells to be alive in a universe by passing the row and column as an array.
     pub fn set_cells(&mut self, cells: &[(u32, u32)]) {
         // Set each cell to be alive
@@ -251,22 +266,6 @@ impl Universe {
             let idx = self.get_index(row, col);
             self.cells.set(idx, true); 
         }
-    }
-
-    /// Set the width of the universe.
-    ///
-    /// Resets all cells to the dead state. 
-    pub fn set_width(&mut self, width: u32) {
-        self.width = width;
-        self.cells = FixedBitSet::with_capacity((self.width * self.height) as usize);
-    }
-
-    /// Set the height of the universe.
-    ///     
-    /// Resets all cells to the dead state.
-    pub fn set_height(&mut self, height: u32) {
-        self.height = height;
-        self.cells = FixedBitSet::with_capacity((self.width * self.height) as usize);
     }
 }
 

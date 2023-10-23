@@ -5,16 +5,16 @@ const CELL_SIZE = 5; // Size of each cell in pixels
 const GRID_COLOR = "#CCCCCC"; // Color of the grid lines
 const DEAD_COLOR = "#FFFFFF"; // Color of dead cells
 const ALIVE_COLOR = "#000000"; // Color of alive cells
+const WIDTH = 128; // Width of the universe in cells
+const HEIGHT = 128; // Height of the universe in cells
 
 // Create a Universe instance
-const universe = Universe.new();
-const width = universe.width();
-const height = universe.height();
+const universe = Universe.new(WIDTH, HEIGHT);
 
 // Construct the universe, and get its width and height.
 const canvas = document.getElementById("game-of-life-canvas");
-canvas.height = (CELL_SIZE + 1) * height + 1;
-canvas.width = (CELL_SIZE + 1) * width + 1;
+canvas.height = (CELL_SIZE + 1) * HEIGHT + 1;
+canvas.width = (CELL_SIZE + 1) * WIDTH + 1;
 
 const ctx = canvas.getContext('2d');
 
@@ -30,7 +30,7 @@ const renderLoop = () => {
   }
 
   drawGrid(); // Draw the grid
-  drawCells(universe.get_changes()); // Draw the cells
+  drawCells(); // Draw the cells
 
   animationId = requestAnimationFrame(renderLoop); // Request the next animation frame
 }
@@ -40,22 +40,24 @@ const drawGrid = () => {
   ctx.strokeStyle = GRID_COLOR; // Set the color of the path to GRID_COLOR
 
   // Vertical lines.
-  for (let i = 0; i <= width; i++) {
+  for (let i = 0; i <= WIDTH; i++) {
     ctx.moveTo(i * (CELL_SIZE + 1) + 1, 0);
-    ctx.lineTo(i * (CELL_SIZE + 1) + 1, (CELL_SIZE + 1) * height + 1);
+    ctx.lineTo(i * (CELL_SIZE + 1) + 1, (CELL_SIZE + 1) * HEIGHT + 1);
   }
 
   // Horizontal lines.
-  for (let j = 0; j <= height; j++) {
+  for (let j = 0; j <= HEIGHT; j++) {
     ctx.moveTo(0, j * (CELL_SIZE + 1) + 1);
-    ctx.lineTo((CELL_SIZE + 1) * width + 1, j * (CELL_SIZE + 1) + 1);
+    ctx.lineTo((CELL_SIZE + 1) * WIDTH + 1, j * (CELL_SIZE + 1) + 1);
   }
 
   ctx.stroke();
 };
 
-const drawCells = (changesPtr) => {
+const drawCells = () => {
   ctx.beginPath();
+
+  const changesPtr = universe.get_changes_ptr();
 
   const objectSizeinBytes = 12;
   const memoryBuffer = new Uint8Array(memory.buffer, changesPtr, universe.get_changes_len() * objectSizeinBytes);
@@ -155,13 +157,13 @@ canvas.addEventListener("click", event => {
   const canvasLeft = (event.clientX - boundingRect.left) * scaleX;
   const canvasTop = (event.clientY - boundingRect.top) * scaleY;
 
-  const row = Math.min(Math.floor(canvasTop / (CELL_SIZE + 1)), height - 1);
-  const col = Math.min(Math.floor(canvasLeft / (CELL_SIZE + 1)), width - 1);
+  const row = Math.min(Math.floor(canvasTop / (CELL_SIZE + 1)), HEIGHT - 1);
+  const col = Math.min(Math.floor(canvasLeft / (CELL_SIZE + 1)), WIDTH - 1);
 
   universe.toggle_cell(row, col);
 
   drawGrid();
-  drawCells(universe.get_changes());
+  drawCells();
 });
 
 /// Time step
