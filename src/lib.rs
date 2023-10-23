@@ -46,6 +46,10 @@ impl Universe {
         self.cells = FixedBitSet::with_capacity((self.width * self.height) as usize);
     }
 
+    pub fn cells(&self) -> *const u32 {
+        self.cells.as_slice().as_ptr()
+    }
+
     fn get_index(&self, row: u32, col: u32) -> usize {
         // row * width + col
         (row * self.width + col) as usize
