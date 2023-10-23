@@ -10,6 +10,7 @@ pub struct Universe {
     width: u32,
     height: u32,
     cells: FixedBitSet,
+    old_cells: FixedBitSet,
 }
 
 #[wasm_bindgen] // Expose to JavaScript
@@ -75,28 +76,28 @@ impl Universe {
         };
     
         let nw = self.get_index(north, west);
-        count += self.cells[nw] as u8;
+        count += self.old_cells[nw] as u8;
     
         let n = self.get_index(north, col);
-        count += self.cells[n] as u8;
+        count += self.old_cells[n] as u8;
     
         let ne = self.get_index(north, east);
-        count += self.cells[ne] as u8;
+        count += self.old_cells[ne] as u8;
     
         let w = self.get_index(row, west);
-        count += self.cells[w] as u8;
+        count += self.old_cells[w] as u8;
     
         let e = self.get_index(row, east);
-        count += self.cells[e] as u8;
+        count += self.old_cells[e] as u8;
     
         let sw = self.get_index(south, west);
-        count += self.cells[sw] as u8;
+        count += self.old_cells[sw] as u8;
     
         let s = self.get_index(south, col);
-        count += self.cells[s] as u8;
+        count += self.old_cells[s] as u8;
     
         let se = self.get_index(south, east);
-        count += self.cells[se] as u8;
+        count += self.old_cells[se] as u8;
     
         count
     }
@@ -105,11 +106,10 @@ impl Universe {
         // timer
         let _timer = utils::Timer::new("Universe::tick");
 
-        // Clone the cells
-        let mut next = {
-            let _timer = utils::Timer::new("allocate next cells");
-            self.cells.clone()
-        };
+        // Overwrite old cells with current cells
+        let _timer = utils::Timer::new("swap cells");
+        self.old_cells = self.cells.clone();
+        
         {
             let _timer = utils::Timer::new("new generation");
             // Loop through all cells
@@ -119,7 +119,7 @@ impl Universe {
                     let cell = self.cells[idx];
                     let live_neighbors = self.live_neighbor_count(row, col);
     
-                    next.set(idx, match (cell, live_neighbors) {
+                    self.cells.set(idx, match (cell, live_neighbors) {
                         // Rule 1: Any live cell with fewer than two live neighbours
                         // dies, as if caused by underpopulation.
                         (true, x) if x < 2 => false,
@@ -138,10 +138,6 @@ impl Universe {
                 }
             }
         }
-
-        // Replace the old cells with the new ones
-        let _timer = utils::Timer::new("free old cells");
-        self.cells = next; 
     }
 
     pub fn new() -> Universe {
@@ -158,12 +154,14 @@ impl Universe {
         for i in 0..size {
             cells.set(i, js_sys::Math::random() < 0.5);
         }
+        let old_cells = cells.clone();
         
         log!("Created a universe with {} cells of {} width and {} height.", cells.len(), width, height);
         Universe {
             width,
             height,
             cells,
+            old_cells,
         }
     }
 

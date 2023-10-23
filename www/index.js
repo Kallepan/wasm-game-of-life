@@ -26,15 +26,16 @@ const bitIsSet = (n, arr) => {
 }
 
 let animationId = null;
-let animationTicks = 10;
+let animationTicks = 1;
 const renderLoop = () => {
   fps.render(); // Render the fps
 
   // debugger;
 
   // Tick the universe
-  for (let i = 0; i < animationTicks; i++)
+  for (let i = 0; i < animationTicks; i++) {
     universe.tick();
+  }
 
   drawGrid(); // Draw the grid
   drawCells(); // Draw the cells
@@ -158,6 +159,13 @@ clearButton.addEventListener("click", event => {
   drawCells();
 });
 
+/// Change the animation speed
+const animationSpeed = document.getElementById("animation-speed");
+
+animationSpeed.addEventListener("change", event => {
+  animationTicks = Number(event.target.value);
+});
+
 /// Toggle a cell
 canvas.addEventListener("click", event => {
   const boundingRect = canvas.getBoundingClientRect();
@@ -218,7 +226,6 @@ const fps = new class {
         min of last 100 = ${Math.round(min)}
         max of last 100 = ${Math.round(max)}
     `.trim();
-
   }
 }
 
