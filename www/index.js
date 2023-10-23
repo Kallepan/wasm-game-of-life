@@ -1,5 +1,5 @@
-import { Universe, Cell } from "wasm-game-of-life"; // Import the Universe class
-import { memory } from "wasm-game-of-life/wasm_game_of_life_bg";
+import { Universe } from "wasm-game-of-life"; // Import the Universe class
+import { memory } from "wasm-game-of-life/wasm_game_of_life_bg"; // Import the WebAssembly memory
 
 const CELL_SIZE = 5; // Size of each cell in pixels
 const GRID_COLOR = "#CCCCCC"; // Color of the grid lines
@@ -18,27 +18,19 @@ canvas.width = (CELL_SIZE + 1) * width + 1;
 
 const ctx = canvas.getContext('2d');
 
-// initialize cells
-const bitIsSet = (n, arr) => {
-  const byte = Math.floor(n / 8);
-  const mask = 1 << (n % 8);
-  return (arr[byte] & mask) === mask;
-}
-
 let animationId = null;
 let animationTicks = 1;
 const renderLoop = () => {
   fps.render(); // Render the fps
 
   // debugger;
-
   // Tick the universe
   for (let i = 0; i < animationTicks; i++) {
     universe.tick();
   }
 
   drawGrid(); // Draw the grid
-  drawCells(); // Draw the cells
+  drawCells(universe.get_changes()); // Draw the cells
 
   animationId = requestAnimationFrame(renderLoop); // Request the next animation frame
 }
@@ -62,58 +54,49 @@ const drawGrid = () => {
   ctx.stroke();
 };
 
-const getIndex = (row, column) => {
-  return row * width + column;
-};
-
-const drawCells = () => {
-  // Get the cells from Universe
-  const cellsPtr = universe.cells();
-
-  // Point cellsPtr at the cells in memory
-  const cells = new Uint8Array(memory.buffer, cellsPtr, width * height / 8);
-
+const drawCells = (changesPtr) => {
   ctx.beginPath();
 
+  const objectSizeinBytes = 12;
+  const memoryBuffer = new Uint8Array(memory.buffer, changesPtr, universe.get_changes_len() * objectSizeinBytes);
+
+  const changes = [];
+  const numberOfObjects = memoryBuffer.length / objectSizeinBytes;
+  for (let i = 0; i < numberOfObjects; i++) {
+    //  I hate bit shifting
+    const row = new Uint32Array(memoryBuffer.slice(i * objectSizeinBytes, (i + 1) * objectSizeinBytes))[0];
+    const col = new Uint32Array(memoryBuffer.slice(i * objectSizeinBytes + 4, (i + 1) * objectSizeinBytes))[0];
+    const state = new Uint8Array(memoryBuffer.slice(i * objectSizeinBytes + 8, (i + 1) * objectSizeinBytes))[0] === 1;
+
+    changes.push({ row, col, state });
+  }
+  
   // Alive cells
   ctx.fillStyle = ALIVE_COLOR;
-  for (let row = 0; row < height; row++) {
-    for (let col = 0; col < width; col++) {
-
-      const idx = getIndex(row, col);
-      if (!bitIsSet(idx, cells)) {
-        continue;
-      }
-
-      ctx.fillRect(
-        col * (CELL_SIZE + 1) + 1,
-        row * (CELL_SIZE + 1) + 1,
-        CELL_SIZE,
-        CELL_SIZE
-      );
-    }
-  }
+  changes.filter(change => change.state).forEach(change => {
+    const { row, col } = change;
+    ctx.fillRect(
+      col * (CELL_SIZE + 1) + 1,
+      row * (CELL_SIZE + 1) + 1,
+      CELL_SIZE,
+      CELL_SIZE
+    );
+  });
 
   // Dead cells
   ctx.fillStyle = DEAD_COLOR;
-  for (let row = 0; row < height; row++) {
-    for (let col = 0; col < width; col++) {
-
-      const idx = getIndex(row, col);
-      if (bitIsSet(idx, cells)) {
-        continue;
-      }
-
-      ctx.fillRect(
-        col * (CELL_SIZE + 1) + 1,
-        row * (CELL_SIZE + 1) + 1,
-        CELL_SIZE,
-        CELL_SIZE
-      );
-    }
-  }
+  changes.filter(change => !change.state).forEach(change => {
+    const { row, col } = change;
+    ctx.fillRect(
+      col * (CELL_SIZE + 1) + 1,
+      row * (CELL_SIZE + 1) + 1,
+      CELL_SIZE,
+      CELL_SIZE
+    );
+  });
 
   ctx.stroke();
+  universe.free_changes();
 };
 
 /// Play and Pause
@@ -146,8 +129,6 @@ playPauseButton.addEventListener("click", event => {
 const randomizeButton = document.getElementById("randomize");
 randomizeButton.addEventListener("click", event => {
   universe.randomize();
-  drawGrid();
-  drawCells();
 });
 
 /// Clear the universe
@@ -155,8 +136,6 @@ const clearButton = document.getElementById("clear");
 
 clearButton.addEventListener("click", event => {
   universe.clear();
-  drawGrid();
-  drawCells();
 });
 
 /// Change the animation speed
@@ -182,7 +161,7 @@ canvas.addEventListener("click", event => {
   universe.toggle_cell(row, col);
 
   drawGrid();
-  drawCells();
+  drawCells(universe.get_changes());
 });
 
 /// Time step
