@@ -14,12 +14,25 @@
         align-items: center;
         justify-content: center;
       }
+
+      .actions {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+      }
     </style>
     <title>Hello wasm-pack!</title>
   </head>
   <body>
     <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
-    <button id="play-pause"></button>
+    <div class="actions">
+      <button id="play-pause"></button>
+      <button id="clear">clear</button>
+      <button id="randomize">randomize</button>
+      <input type="range" id="animation-per-frame-slider" min="1" max="10" step="1" value="1">
+    </div>
     <canvas id="game-of-life-canvas"></canvas>
     <script src="./bootstrap.js"></script>
   </body>

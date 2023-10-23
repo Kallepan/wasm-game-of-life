@@ -12,13 +12,7 @@ macro_rules! log {
     }
 }
 
-#[wasm_bindgen]
-#[repr(u8)] // Represented as a byte
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Cell {
-    Dead = 0,
-    Alive = 1,
-}
+
 
 #[wasm_bindgen] // Expose to JavaScript
 pub struct Universe {
@@ -144,6 +138,22 @@ impl Universe {
     pub fn render(&self) -> String {
         self.to_string()
     }
+
+    /// Responsive functions    
+    pub fn toggle_cell(&mut self, row: u32, col: u32) {
+        let idx = self.get_index(row, col);
+        self.cells.toggle(idx);
+    }
+
+    pub fn randomize(&mut self) {
+        for i in 0..self.cells.len() {
+            self.cells.set(i, js_sys::Math::random() < 0.5);
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.cells = FixedBitSet::with_capacity((self.width * self.height) as usize);
+    }
 }
 
 // Do not expose to JavaScript
@@ -170,17 +180,18 @@ impl fmt::Display for Universe {
     // Display the universe as a grid of cells
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Loop through all cells
         for line in self.cells.as_slice().chunks(self.width as usize) {
-            // Display each cell as either ◻ or ◼
             for &cell in line {
-                let symbol = if cell == Cell::Dead as u32 { '◻' } else { '◼' };
+                // Write the binary representation of the cell state
+                // write!(f, "{}", cell)?;
+                // Write the cell state as an emoji
+                let symbol = if cell == 0 { '◻' } else { '◼' };
                 write!(f, "{}", symbol)?;
             }
-            // Display a new line
+            // Add a new line at the end of each row
             write!(f, "\n")?;
         }
-
+        // Return OK
         Ok(())
     }
 }

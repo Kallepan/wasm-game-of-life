@@ -26,9 +26,14 @@ const bitIsSet = (n, arr) => {
 }
 
 let animationId = null;
+let animationsPerFrame = 1;
 const renderLoop = () => {
   // debugger;
-  universe.tick(); // Tick the universe
+
+  // Tick the universe
+  for (let i = 0; i < animationsPerFrame; i++) {
+    universe.tick();
+  }
 
   drawGrid(); // Draw the grid
   drawCells(); // Draw the cells
@@ -115,4 +120,49 @@ playPauseButton.addEventListener("click", event => {
   }
 });
 
+/// Set to random
+const randomizeButton = document.getElementById("randomize");
+randomizeButton.addEventListener("click", event => {
+  universe.randomize();
+  drawGrid();
+  drawCells();
+});
+
+/// Clear the universe
+const clearButton = document.getElementById("clear");
+
+clearButton.addEventListener("click", event => {
+  universe.clear();
+  drawGrid();
+  drawCells();
+});
+
+/// Toggle a cell
+canvas.addEventListener("click", event => {	
+  const boundingRect = canvas.getBoundingClientRect();
+
+  const scaleX = canvas.width / boundingRect.width;
+  const scaleY = canvas.height / boundingRect.height;
+
+  const canvasLeft = (event.clientX - boundingRect.left) * scaleX;
+  const canvasTop = (event.clientY - boundingRect.top) * scaleY;
+
+  const row = Math.min(Math.floor(canvasTop / (CELL_SIZE + 1)), height - 1);
+  const col = Math.min(Math.floor(canvasLeft / (CELL_SIZE + 1)), width - 1);
+
+  universe.toggle_cell(row, col);
+
+  drawGrid();
+  drawCells();
+});
+
+/// Animation speed
+const animationsPerFrameSlider = document.getElementById("animation-per-frame-slider");
+
+animationsPerFrameSlider.addEventListener("change", event => {
+  animationsPerFrame = animationsPerFrameSlider.value;
+  console.log(animationsPerFrame);
+});
+
+/// Start the game
 play();
