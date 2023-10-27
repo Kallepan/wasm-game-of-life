@@ -1,5 +1,5 @@
-import { Universe } from "wasm-game-of-life"; // Import the Universe class
-import { memory } from "wasm-game-of-life/wasm_game_of_life_bg"; // Import the WebAssembly memory
+import { Universe } from "wasm"; // Import the Universe class
+import { memory } from "wasm/wasm_bg"; // Import the WebAssembly memory
 
 const CELL_SIZE = 5; // Size of each cell in pixels
 const GRID_COLOR = "#CCCCCC"; // Color of the grid lines
