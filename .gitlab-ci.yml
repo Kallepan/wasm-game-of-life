@@ -1,0 +1,16 @@
+variables:
+  NO_PROXY: ".server.home"
+
+services:
+  - name: docker:dind
+    entrypoint: ["dockerd-entrypoint.sh", "--tls=false"]
+
+before_script:
+  - docker login -u "${DOCKER_REGISTRY_USER}" -p "${DOCKER_REGISTRY_PASS}" registry.server.home
+
+build:
+  image: docker:stable
+  stage: build
+  script:
+    - docker build -t registry.server.home/kalle/wasm-game-of-life:latest .
+    - docker push registry.server.home/kalle/wasm-game-of-life:latest
